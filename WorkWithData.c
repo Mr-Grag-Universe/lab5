@@ -196,6 +196,12 @@ void insert(Matrix ** MATRIX, size_t * nom_) {
 
 Matrix *delete_row(Matrix * MATRIX, size_t ind_n) {
     size_t w = MATRIX->width, h = MATRIX->height;
+    if (h == 0 || w == 0) {
+    	printf("This Matrix is already empty!!!\n");
+    	sleep(3);
+    	return;
+    }
+
     Matrix * M = malloc(sizeof(Matrix));
     M->ptr = malloc(sizeof(double)*(h-1)*w);
     M->width = w;
@@ -208,13 +214,19 @@ Matrix *delete_row(Matrix * MATRIX, size_t ind_n) {
     donor = MATRIX->ptr + w*(ind_n+1);
     recipient = M->ptr + w*ind_n;
     memmove(recipient, donor, ((1+h)*w - w*(1+ind_n))*sizeof(double));
-    printMatrix(M);
+    // printMatrix(M);
     return M;
 }
 
 Matrix * delete_column(Matrix * MATRIX, size_t ind_n) {
     double * donor = MATRIX->ptr + 1+ind_n;
     size_t w = MATRIX->width, h = MATRIX->height;
+    if (h == 0 || w == 0) {
+    	printf("This Matrix is already empty!!!\n");
+    	sleep(3);
+    	return;
+    }
+
     Matrix * M = (Matrix*) malloc(sizeof(Matrix));
     M->ptr = (double*) malloc(sizeof(double)*h*(w-1));
     M->width = w-1;
@@ -230,7 +242,7 @@ Matrix * delete_column(Matrix * MATRIX, size_t ind_n) {
         memcpy(recipient, donor, (w-ind_n)*sizeof(double));
     }
 
-    printMatrix(M);
+    // printMatrix(M);
     return  M;
 }
 
@@ -272,10 +284,19 @@ void delete(Matrix ** MATRIX, size_t * nom_) {
     }
 
     size_t width = (*MATRIX)[ind].width, height = (*MATRIX)[ind].height;
+	if (height == 0 || width == 0) {
+    	printf("This Matrix is already empty!!!\n");
+    	sleep(3);
+    	return;
+    }
+
     printf("This Matrix's size: %ld x %ld.\n", height, width);
     printMatrix(MATRIX[ind]);
 
     if (n == 1) {
+        if (width == 1) {
+
+        }
         printf("Which column would you like to delete?\n-> ");
         answer = get_line();
         while (is_digit(answer) == 0) {
@@ -363,6 +384,15 @@ void removeMatrix(Matrix* m) {
 	free(m);
 }
 
+Matrix * copyMatrix(Matrix * A) {
+	Matrix * B = malloc(sizeof(Matrix));
+	B->height = A->height;
+	B->width = A->width;
+	B->ptr = malloc(sizeof(double) * A->width * A->height);
+	memcpy(B->ptr, A->ptr, sizeof(double) * A->width * A->height);
+	return B;
+}
+
 double determinant(Matrix* m) {
 	if (m->width == 1)
 		return m->ptr[0];
@@ -416,4 +446,244 @@ void all_minors(Matrix * MATRIX, size_t nom) {
 	getAllMinors(MATRIX + ind);
 	answer = get_line();
     free(answer);
+}
+
+int thereIsNotZeroMinors(Matrix * M) {
+	size_t width = M->width, height = M->height;
+	Matrix ** minors = (Matrix **) malloc(sizeof(Matrix*) * width*height);
+	// собираем все миноры
+	// и находим все определители всех миноров
+	double * determinants = (double *) malloc(sizeof(double) * width * height);
+	for (int i = 0; i < width; i++) {
+		for (int j = 0; j < width; j++) {
+			minors[i*width+j] = getMinorMatrix(M, i, j);
+			determinants[i*width+j] = determinant(minors[i*width + j]);
+		}
+	}
+
+	// ищем не нулевой определитель
+	for (int i = 0; i < height*width; ++i) {
+		if (determinants[i] != 0) {
+			for (int j = 0; j < width*height; ++j)
+				removeMatrix(minors[j]);
+			free(determinants);
+			free(minors);
+			return 1;
+		}
+	}
+
+	for (int j = 0; j < width*height; ++j)
+		removeMatrix(minors[j]);
+	free(determinants);
+	free(minors);
+	return 0;
+}
+
+int max_number(int * arr, size_t len) {
+	int res = arr[0];
+	for (int i = 0; i < len; ++i) {
+		if (arr[i] > res)
+			res = arr[i];
+	}
+	return res;
+}
+
+size_t min(size_t a, size_t b) {
+	return (a < b) ? a: b;
+}
+size_t max(size_t a, size_t b) {
+	return (a > b) ? a: b;
+}
+
+long long int factorial(int a) {
+	if (a < 0)
+		return -1;
+	if (a == 0)
+		return 1;
+
+	long long int res = 1;
+	for (int i = 1; i <= a; ++i)
+		res *= i;
+
+	return res;
+}
+
+int * next_selection(int * a, int n, int m) {
+	int * b = malloc(sizeof(int) * n);
+	for (int i = 0; i < n; ++i)
+		b[i] = a[i];
+
+	b[n-1]++;
+	for (int i = 0; i < n; ++i) {
+		if (b[n-i-1] == m-i+1) {
+			b[n-i-2]++;
+			for (int j = n-i-1; j < n; ++j)
+				b[j] = b[n-i-2] + j-(n-i-1)+1;
+		}
+	}
+
+	return b;
+}
+
+int ** all_selections(int n, int m) {
+	if (n > m)
+		return NULL;
+	
+	long long int number = factorial(m) / (factorial(n) * factorial(m-n));
+    int ** A = malloc(sizeof(int*) * number);
+
+	A[0] = malloc(sizeof(int) * n);
+	for (int i = 0; i < n; ++i)
+		A[0][i] = i+1;
+	
+	// getchar();
+
+	for (int i = 1; i < number; ++i)
+		A[i] = next_selection(A[i-1], n, m);
+
+	return A;
+}
+
+int getRang(Matrix * M) {
+	size_t width = M->width, height = M->height;
+	size_t max_possible_rang = min(width, height);
+
+	if (width * height == 0)
+		return 0;
+
+	if (height != width) {
+		size_t m = max(width, height), n = min(width, height);
+		size_t number = factorial(m) / (factorial(m-n)*factorial(n));
+
+		Matrix ** minors = (Matrix **) malloc(sizeof(Matrix*) * number);
+		int * rangs = (int *) malloc(sizeof(int) * number);
+
+		// собираем все миноры текущей матрицы такие что их размеры = мин размеру сторон исходной
+		// находим все определители этих миноров
+		//for (size_t i = 1, j = 0; j < number && i != 0; ++i) {
+
+		//}
+
+		int ** A = all_selections(m-n, m);
+
+		/*
+		for (int i = 0; i < number; ++i) {
+			for (int j = 0; j < m-n; ++j)
+				printf("%d ", A[i][j]);
+			printf("\n");
+		}*/
+		// getchar();
+
+		// получаем все квадратные миноры максимального размера
+		for (size_t i = 0; i < number; ++i) {
+			if (height > width)
+				minors[i] = delete_row(M, A[i][0]-1);
+			else
+				minors[i] = delete_column(M, A[i][0]-1);
+			for (size_t j = 1; j < m-n; ++j) {
+				Matrix * temp = copyMatrix(minors[i]);
+				// printMatrix(temp);
+				removeMatrix(minors[i]);
+				if (height > width)
+					minors[i] = delete_row(temp, A[i][j]-j-1);
+				else
+					minors[i] = delete_column(temp, A[i][j]-j-1);
+				removeMatrix(temp);
+			}
+
+			rangs[i] = getRang(minors[i]);
+		}
+
+		// чистим память
+		for (int i = 0; i < number; ++i)
+			free(A[i]);
+		free(A);
+		for (int j = 0; j < number; ++j)
+			removeMatrix(minors[j]);
+		free(minors);
+		int res = max_number(rangs, number);
+		free(rangs);
+		return res;
+	}
+
+	double det = determinant(M);
+	if (det)
+		return max_possible_rang;
+
+	if (max_possible_rang == 1)
+		return 0;
+
+	if (thereIsNotZeroMinors(M))
+		return width-1;
+
+	/* если оказалось что даже на уровне ниже
+	 * нет ненулевого определителя опускаемся ещё ниже
+	 */
+	Matrix ** minors = (Matrix **) malloc(sizeof(Matrix*) * width*height);
+	// собираем все миноры текущей матрицы
+	// находим все определители этих миноров
+	int * rangs = (int *) malloc(sizeof(int) * width * height);
+	for (int i = 0; i < width; i++) {
+		for (int j = 0; j < width; j++) {
+			minors[i*width+j] = getMinorMatrix(M, i, j);
+			rangs[i*width+j] = getRang(minors[i*width+j]);
+		}
+	}
+
+	// ищем не нулевой определитель
+	char flag = 0;
+	for (int i = 0; i < height*width; ++i) {
+		if (rangs[i] != 0) {
+			flag = 1;
+			break;
+		}
+	}
+
+	for (int j = 0; j < width*height; ++j)
+		removeMatrix(minors[j]);
+	free(minors);
+	
+	if (!flag)
+		return 0;
+
+	int res = max_number(rangs, height*width);
+	free(rangs);
+
+	return res;
+}
+
+void find_rang(Matrix * MATRIX, size_t nom) {
+	if (nom == 0) {
+		printf("There is not matrixes yet!\n");
+		sleep(3);
+		return;
+	}
+
+	printf("Which Matrix's rang would you like to find?\nEnter index of it: ");
+	getchar();
+	char * answer = get_line();
+	while (is_digit(answer) == 0) {
+		free(answer);
+		printf("-> ");
+		answer = get_line();
+	}
+	size_t ind = atol(answer);
+	free(answer);
+
+	if (ind < 0 || ind > nom-1) {
+		printf("Your index is out of range!\n");
+		sleep(2);
+		return;
+	}
+
+	int rang = getRang(MATRIX + ind);
+	if (rang == -1) {
+		printf("This is not squire matrix. Sorry (( \n");
+		sleep(3);
+		return;
+	}
+
+	printf("rang: %d\n", rang);
+	answer = get_line();
+	free(answer);
 }
