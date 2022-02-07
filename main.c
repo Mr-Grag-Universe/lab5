@@ -24,6 +24,7 @@ char functions_execution(char * name, Matrix ** MATRIX, size_t * nom) {
     else if (!strcmp(name, "Insert column or row.")) insert(MATRIX, nom);
     else if (!strcmp(name, "Delete column or row.")) delete(MATRIX, nom);
     else if (!strcmp(name, "Find all minors in matrix.")) all_minors(*MATRIX, *nom);
+    else if (!strcmp(name, "Find a rang of matrix.")) find_rang(*MATRIX, *nom);
     return 0;
 }
 
@@ -86,6 +87,7 @@ struct Menu create_menu() {
 	char insert[] = "Insert column or row.";
     char delete[] = "Delete column or row.";
     char minors[] = "Find all minors in matrix.";
+    char rang[] = "Find a rang of matrix.";
     
 	add_folder(enter_data, root, &menu);
 	add_folder(get_out_data, root, &menu);
@@ -102,6 +104,7 @@ struct Menu create_menu() {
 	add_function(insert, work_with_data, menu);
     add_function(delete, work_with_data, menu);
     add_function(minors, work_with_data, menu);
+    add_function(rang, work_with_data, menu);
 
 	return menu;
 }
@@ -165,7 +168,7 @@ void main_circle(){
     //printf("SLEEEP\n");
 	//sleep(10);
 	clear_root(&menu);
-	for (int i = 0; i < nom; ++i)
+	for (size_t i = 0; i < nom; ++i)
 		free(MATRIX[i].ptr);
 	free(MATRIX);
 }
